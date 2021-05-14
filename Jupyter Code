@@ -29,65 +29,66 @@ def main():
       col = report.Subtotal
       return findLabel(report, max, col, "Title")
 
-  # finds the least expensive item in the dataset
-  def findLeastExpensiveItem(report):
-      min = report["Subtotal"].min()
-      col = report.Subtotal
-      return findLabel(report, min, col, "Title")
+ # finds the least expensive item in the dataset
+def findLeastExpensiveItem(report):
+    min = report["Subtotal"].min()
+    col = report.Subtotal
+    return findLabel(report, min, col, "Title")
 
-  # finds the most common item of given category
-  def findMostCommon(report, category):
-      series = report[category]
-      freq_val = series.value_counts()
-      freq_item = series.mode()
-      return (freq_item, freq_val[0])
+# finds the most common item of given category
+def findMostCommon(report, category):
+    series = report[category]
+    freq_val = series.value_counts()
+    freq_item = series.mode()
+    return (freq_item, freq_val[0])
 
-  # finds the most commonly ordred item
-  def findMostCommonlyOrdered(report):
-      return findMostCommon(report, "Title")
+# finds the most commonly ordred item
+def findMostCommonlyOrdered(report):
+    return findMostCommon(report, "Title")
 
-  # finds the most commonly ordered category
-  def findMostCommonCategory(report):
-      return findMostCommon(report, "Category")
+# finds the most commonly ordered category
+def findMostCommonCategory(report):
+    return findMostCommon(report, "Category")
 
-  # finds the most commonly ordred from seller
-  def findMostCommonSeller(report):
-      return findMostCommon(report, "Seller")
+# finds the most commonly ordred from seller
+def findMostCommonSeller(report):
+    return findMostCommon(report, "Seller")
 
 
-  # the orders and shipments report you want to analyze
-  ordersAndShipments = pd.read_csv("totalOrdersReport.csv")
-  # the items report you want to analyze
-  items = pd.read_csv("totalItemsReport.csv")
-  report = pd.merge(items, ordersAndShipments, on="Order ID")
-  report = dataCleaning(report)
+# the orders and shipments report you want to analyze
+ordersAndShipments = pd.read_csv("totalOrdersReport.csv")
+# the items report you want to analyze
+items = pd.read_csv("totalItemsReport.csv")
+report = pd.merge(items, ordersAndShipments, on="Order ID")
+report = dataCleaning(report)
 
-  # string data
-  mostExpensiveItem = findMostExpensiveItem(report)
-  leastExpensiveItem = findLeastExpensiveItem(report)
+# string data
+mostExpensiveItem = findMostExpensiveItem(report)
+leastExpensiveItem = findLeastExpensiveItem(report)
+totalCharged = report["Total Charged"].sum()
 
-  # float data
-  mostExpensivePrice = report["Subtotal"].max()
-  leastExpensivePrice = report["Subtotal"].min()
-  averagePrice = round(report["Subtotal"].mean(), 2)
-  taxRate = round(report["Tax Charged"].sum()/report["Total Charged"].sum() * 100, 2)
+# float data
+mostExpensivePrice = report["Subtotal"].max()
+leastExpensivePrice = report["Subtotal"].min()
+averagePrice = round(report["Subtotal"].mean(), 2)
+taxRate = round(report["Tax Charged"].sum()/report["Total Charged"].sum() * 100, 2)
 
-  # tuple data
-  mostCommonlyOrdered = findMostCommonlyOrdered(report)
-  mostCommonCategory = findMostCommonCategory(report)
-  mostCommonSeller = findMostCommonSeller(report)
+# tuple data
+mostCommonlyOrdered = findMostCommonlyOrdered(report)
+mostCommonCategory = findMostCommonCategory(report)
+mostCommonSeller = findMostCommonSeller(report)
 
-  # open a pdf to export results to
-  pdf = PdfPages('multipage.pdf')
+# open a pdf to export results to
+pdf = PdfPages('multipage.pdf')
 
-  # create text file to write data trends into
-  outputFile = open('output.txt', 'w')
-  outputFile.write("Amazon Orders and Items Report\nMost expensive item: " + str(mostExpensiveItem) + 
-                  " and it's price was: " + str(mostExpensivePrice) + "\nLeast expensive item: " + str(leastExpensiveItem) + 
-                  " and it's price was: " + str(leastExpensivePrice) + "\nAverage price of your orders was: " + str(averagePrice) +
-                  " and your overall taxrate was: " + str(taxRate) + "%\nMost commonly ordered item: " + str(mostCommonlyOrdered[0]) +
-                  " and you ordered it "+ str(mostCommonlyOrdered[1]) + " times")
-  outputFile.close()
+# create text file to write data trends into
+outputFile = open('output.txt', 'w')
+outputFile.write("Amazon Orders and Items Report\nMost expensive item: " + str(mostExpensiveItem) + 
+                 " and it's price was: " + str(mostExpensivePrice) + "\nLeast expensive item: " + str(leastExpensiveItem) + 
+                 " and it's price was: " + str(leastExpensivePrice) + "\nAverage price of your orders was: " + str(averagePrice) +
+                 " and your overall taxrate was: " + str(taxRate) + "%\nMost commonly ordered item: " + str(mostCommonlyOrdered[0]) +
+                " and you ordered it "+ str(mostCommonlyOrdered[1]) + " times " + "\nYou spent a total of " + str(totalCharged))
+outputFile.close()
 
 
   # make and save graph depicting the cost of orders by the day they were ordered on
