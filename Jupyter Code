@@ -1,0 +1,117 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+# need this to run the program in jupyter notebooks
+# %matplotlib inline
+
+def main():
+  # converts columsn of strings to floats
+  def toFloat(report, column):
+      return report[column].str.replace('$', '').astype(float)
+
+  # fills nan values with 0 and converts relevant columns to floats
+  def dataCleaning(report):
+      report = report.fillna(0)
+      report["Subtotal"] = toFloat(report, "Subtotal")
+      report["Total Charged"] = toFloat(report, "Total Charged")
+      report["Tax Charged"] = toFloat(report, "Tax Charged")
+      report["Order Date_x"] = pd.to_datetime(report["Order Date_x"])
+      return report
+
+  # finds a given label
+  def findLabel(report, val, col, label):
+      row = report.loc[col == val]
+      return row[label] 
+
+  # finds the most expensive item in the dataset
+  def findMostExpensiveItem(report):
+      max = report["Subtotal"].max()
+      col = report.Subtotal
+      return findLabel(report, max, col, "Title")
+
+  # finds the least expensive item in the dataset
+  def findLeastExpensiveItem(report):
+      min = report["Subtotal"].min()
+      col = report.Subtotal
+      return findLabel(report, min, col, "Title")
+
+  # finds the most common item of given category
+  def findMostCommon(report, category):
+      series = report[category]
+      freq_val = series.value_counts()
+      freq_item = series.mode()
+      return (freq_item, freq_val[0])
+
+  # finds the most commonly ordred item
+  def findMostCommonlyOrdered(report):
+      return findMostCommon(report, "Title")
+
+  # finds the most commonly ordered category
+  def findMostCommonCategory(report):
+      return findMostCommon(report, "Category")
+
+  # finds the most commonly ordred from seller
+  def findMostCommonSeller(report):
+      return findMostCommon(report, "Seller")
+
+
+  # the orders and shipments report you want to analyze
+  ordersAndShipments = pd.read_csv("totalOrdersReport.csv")
+  # the items report you want to analyze
+  items = pd.read_csv("totalItemsReport.csv")
+  report = pd.merge(items, ordersAndShipments, on="Order ID")
+  report = dataCleaning(report)
+
+  # string data
+  mostExpensiveItem = findMostExpensiveItem(report)
+  leastExpensiveItem = findLeastExpensiveItem(report)
+
+  # float data
+  mostExpensivePrice = report["Subtotal"].max()
+  leastExpensivePrice = report["Subtotal"].min()
+  averagePrice = round(report["Subtotal"].mean(), 2)
+  taxRate = round(report["Tax Charged"].sum()/report["Total Charged"].sum() * 100, 2)
+
+  # tuple data
+  mostCommonlyOrdered = findMostCommonlyOrdered(report)
+  mostCommonCategory = findMostCommonCategory(report)
+  mostCommonSeller = findMostCommonSeller(report)
+
+  # open a pdf to export results to
+  pdf = PdfPages('multipage.pdf')
+
+  # create text file to write data trends into
+  outputFile = open('output.txt', 'w')
+  outputFile.write("Amazon Orders and Items Report\nMost expensive item: " + str(mostExpensiveItem) + 
+                  " and it's price was: " + str(mostExpensivePrice) + "\nLeast expensive item: " + str(leastExpensiveItem) + 
+                  " and it's price was: " + str(leastExpensivePrice) + "\nAverage price of your orders was: " + str(averagePrice) +
+                  " and your overall taxrate was: " + str(taxRate) + "%\nMost commonly ordered item: " + str(mostCommonlyOrdered[0]) +
+                  " and you ordered it "+ str(mostCommonlyOrdered[1]) + " times")
+  outputFile.close()
+
+
+  # make and save graph depicting the cost of orders by the day they were ordered on
+  daily_order_cost = report.groupby('Order Date_x').sum()['Total Charged']
+  daily_graph = daily_order_cost.plot.bar(figsize=(24,12), title='Total Cost of Orders by Day, including Tax and Shipping', legend=True)
+  pdf.savefig()
+
+  # make and save a graph depicting spending by seller
+  seller_orders = report.groupby('Seller').sum()['Total Charged']
+  seller_graph = seller_orders.plot.bar(figsize=(24,12), title='Spending by Seller')
+  pdf.savefig()
+
+  # make and save a graph depicting spending by category
+  brand_orders = report.groupby('Category').sum()['Total Charged']
+  brand_graph = brand_orders.plot.bar(figsize=(24,12), title='Spending by Category')
+  pdf.savefig()
+
+
+  # reopen the textfile and export the text to the pdf
+  outputFile = open('output.txt', 'r')
+  blankfig = plt.figure(figsize=(24,12))
+  plt.text(0.05,0.5,outputFile.read(), size=24)
+  pdf.savefig()
+  outputFile.close()
+
+  # close the pdf file
+  pdf.close()
